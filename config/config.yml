@@ -1,0 +1,2 @@
+addr: '127.0.0.1:8080'
+pg_url: 'postgresql://postgres:postgres@localhost:5432/user-wallet-service'
