@@ -1,0 +1,32 @@
+package pg_locker
+
+import (
+	"context"
+	"user-balance-service/internal/postgres"
+)
+
+type Locker struct {
+	// can be used ONLY inside pgsql transaction
+	tx postgres.Tx
+}
+
+func New(tx postgres.Tx) *Locker {
+	return &Locker{tx}
+}
+
+func (l *Locker) Lock(ctx context.Context, userID int) error {
+	_, err := l.tx.Exec(ctx, "select pg_advisory_xact_lock($1);", userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *Locker) Unlock(ctx context.Context, userID int) error {
+	// we use pg_advisory_xact_lock here
+	// so it will automatically unlocked
+	// after commit or rollback of postgresql transaction
+
+	return nil
+}

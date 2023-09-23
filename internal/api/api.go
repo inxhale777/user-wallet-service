@@ -4,11 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"net/http"
+	"strconv"
 	"user-balance-service/config"
-	"user-balance-service/pkg/domain"
-	"user-balance-service/pkg/postgres"
-	"user-balance-service/pkg/repo"
-	"user-balance-service/pkg/service"
+	"user-balance-service/internal/domain"
+	"user-balance-service/internal/postgres"
+	"user-balance-service/internal/repo/pg_transactions"
+	"user-balance-service/internal/service/pg_locker"
+	"user-balance-service/internal/service/wallet"
 )
 
 type SetupRequest struct {
@@ -31,7 +33,14 @@ func Run(req *SetupRequest) http.Handler {
 	r := gin.Default()
 
 	r.GET("/balance/:id", func(c *gin.Context) {
-		balance, err := req.Wallet.Balance(c.Request.Context(), c.Param("id"))
+
+		userID, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			errorResponse(c, http.StatusBadRequest, err)
+			return
+		}
+
+		balance, err := req.Wallet.Balance(c.Request.Context(), userID)
 		if err != nil {
 			errorResponse(c, http.StatusInternalServerError, err)
 			return
@@ -48,11 +57,14 @@ func Run(req *SetupRequest) http.Handler {
 			Amount int `json:"amount"`
 		}
 
-		var data deposit
-		userID := c.Param("id")
-		ctx := c.Request.Context()
+		userID, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			errorResponse(c, http.StatusBadRequest, err)
+			return
+		}
 
-		err := c.ShouldBindJSON(&data)
+		var data deposit
+		err = c.ShouldBindJSON(&data)
 		if err != nil {
 			errorResponse(c, http.StatusBadRequest, err)
 			return
@@ -63,6 +75,8 @@ func Run(req *SetupRequest) http.Handler {
 			return
 		}
 
+		ctx := c.Request.Context()
+
 		// start tx
 		tx, err := req.Postgres.Begin(ctx)
 		if err != nil {
@@ -70,16 +84,8 @@ func Run(req *SetupRequest) http.Handler {
 			return
 		}
 
-		// create service & repo wrapped on database TX
-		walletServiceTx := service.NewWallet(repo.NewTransactionPGRepo(tx))
-		lockerTX := service.NewLocker(tx)
-
-		err = lockerTX.Lock(ctx, userID)
-		if err != nil {
-			_ = tx.Rollback(ctx)
-			errorResponse(c, http.StatusInternalServerError, err)
-			return
-		}
+		// create service, repo and locker wrapped on database TX
+		walletServiceTx := wallet.New(pg_transactions.New(tx), pg_locker.New(tx))
 
 		err = walletServiceTx.Deposit(ctx, userID, data.Amount)
 		if err != nil {
@@ -90,7 +96,6 @@ func Run(req *SetupRequest) http.Handler {
 
 		err = tx.Commit(ctx)
 		if err != nil {
-			_ = tx.Rollback(ctx)
 			errorResponse(c, http.StatusInternalServerError, err)
 			return
 		}

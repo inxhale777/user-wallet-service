@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 	"user-balance-service/config"
-	"user-balance-service/pkg/api"
-	"user-balance-service/pkg/postgres"
-	"user-balance-service/pkg/repo"
-	"user-balance-service/pkg/service"
+	"user-balance-service/internal/api"
+	"user-balance-service/internal/postgres"
+	"user-balance-service/internal/repo/pg_transactions"
+	"user-balance-service/internal/service/wallet"
 )
 
 func main() {
@@ -25,17 +25,22 @@ func main() {
 
 	p, err := postgres.New(ctx, cfg.PgURL)
 	if err != nil {
-		log.Fatalf("postgres connection initialization failed: %s", err)
+		log.Fatalf("postgres initialization failed: %s", err)
+	}
+
+	err = p.Pool.Ping(ctx)
+	if err != nil {
+		log.Fatalf("can't ping postgres : %s", err)
 	}
 
 	// wallet service that is not wrapped around database TX
 	// used in handlers that logic does not require TX, e.g: GET /balance request
-	wallet := service.NewWallet(repo.NewTransactionPGRepo(p.Pool))
+	w := wallet.New(pg_transactions.New(p.Pool), nil)
 
 	r := api.Run(&api.SetupRequest{
 		CFG:      cfg,
 		Postgres: p,
-		Wallet:   wallet,
+		Wallet:   w,
 	})
 
 	srv := &http.Server{
