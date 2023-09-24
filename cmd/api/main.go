@@ -32,15 +32,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("can't ping postgres : %s", err)
 	}
+	defer p.Close()
 
 	// wallet service that is not wrapped around database TX
 	// used in handlers that logic does not require TX, e.g: GET /balance request
 	w := wallet.New(pg_transactions.New(p.Pool), nil)
 
 	r := api.Run(&api.SetupRequest{
-		CFG:      cfg,
-		Postgres: p,
-		Wallet:   w,
+		CFG:    cfg,
+		DB:     p,
+		Wallet: w,
 	})
 
 	srv := &http.Server{
@@ -62,7 +63,8 @@ func main() {
 	// the request it is currently handling
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+
+	if err = srv.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown: ", err)
 	}
 

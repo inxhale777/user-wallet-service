@@ -5,12 +5,18 @@ import (
 	"user-balance-service/internal/postgres"
 )
 
-type Locker struct {
-	// can be used ONLY inside pgsql transaction
-	tx postgres.Tx
+type Tx interface {
+	postgres.DB
+	Commit(ctx context.Context) error
+	Rollback(ctx context.Context) error
 }
 
-func New(tx postgres.Tx) *Locker {
+type Locker struct {
+	// can be used ONLY inside pgsql transaction
+	tx Tx
+}
+
+func New(tx Tx) *Locker {
 	return &Locker{tx}
 }
 

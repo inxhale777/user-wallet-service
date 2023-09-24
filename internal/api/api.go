@@ -14,9 +14,9 @@ import (
 )
 
 type SetupRequest struct {
-	CFG      *config.Config
-	Postgres *postgres.Postgres
-	Wallet   domain.WalletService
+	CFG    *config.Config
+	DB     postgres.DB
+	Wallet domain.WalletService
 }
 
 func errorResponse(c *gin.Context, code int, e error) {
@@ -78,7 +78,7 @@ func Run(req *SetupRequest) http.Handler {
 		ctx := c.Request.Context()
 
 		// start tx
-		tx, err := req.Postgres.Begin(ctx)
+		tx, err := req.DB.Begin(ctx)
 		if err != nil {
 			_ = c.Error(err)
 			return
