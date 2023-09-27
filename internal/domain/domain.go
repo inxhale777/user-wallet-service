@@ -16,9 +16,9 @@ type Transaction struct {
 type TransactionStatus string
 
 var (
-	TransactionStatusHold     TransactionStatus = "hold"
-	TransactionStatusComplete TransactionStatus = "complete"
-	TransactionStatusCanceled TransactionStatus = "canceled"
+	TransactionStatusHold      TransactionStatus = "hold"
+	TransactionStatusComplete  TransactionStatus = "complete"
+	TransactionStatusCancelled TransactionStatus = "cancelled"
 )
 
 // UserLocker - thing what can acquire or wait&acquire lock on some key, userID in our case

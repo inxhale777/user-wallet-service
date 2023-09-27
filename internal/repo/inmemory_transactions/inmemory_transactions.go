@@ -1,4 +1,4 @@
-package mock_transactions
+package inmemory_transactions
 
 import (
 	"context"
@@ -12,7 +12,9 @@ type R struct {
 }
 
 func New() *R {
-	return &R{}
+	return &R{
+		state: make(map[int][]domain.Transaction, 0),
+	}
 }
 
 func (r *R) Get(ctx context.Context, transactionID int) (*domain.Transaction, error) {
@@ -62,7 +64,9 @@ func (r *R) Create(ctx context.Context, userID int, amount int, status domain.Tr
 func (r *R) Total(ctx context.Context, userID int) (int, error) {
 	var total int
 	for _, tx := range r.state[userID] {
-		total += tx.Amount
+		if tx.Status == domain.TransactionStatusComplete || tx.Status == domain.TransactionStatusHold {
+			total += tx.Amount
+		}
 	}
 
 	return total, nil
