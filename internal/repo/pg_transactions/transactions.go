@@ -2,10 +2,10 @@ package pg_transactions
 
 import (
 	"context"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/pkg/errors"
-	"user-balance-service/internal/domain"
-	"user-balance-service/internal/postgres"
+	"user-wallet-service/internal/domain"
+	"user-wallet-service/internal/postgres"
 )
 
 type R struct {
@@ -23,7 +23,11 @@ func (t *R) Get(ctx context.Context, transactionID int) (*domain.Transaction, er
 		QueryRow(ctx, "select id, user_id, service_id, order_id, status, amount from transactions where id = $1", transactionID).
 		Scan(&tx.ID, &tx.UserID, &tx.ServiceID, &tx.OrderID, &tx.Status, &tx.Amount)
 	if err != nil {
-		return nil, errors.Wrap(err, "R.Get")
+		return nil, fmt.Errorf("pg_transactions.Get: %w", err)
+	}
+
+	if tx.ID == 0 {
+		return nil, fmt.Errorf("pg_transactions.Get: %w", domain.NewErrTxNotFound(transactionID))
 	}
 
 	return &tx, nil
@@ -35,16 +39,20 @@ func (t *R) Create(ctx context.Context, userID int, amount int, status domain.Tr
 		"insert into transactions (user_id, amount, status) values ($1, $2, $3) returning id;", userID, amount, status).
 		Scan(&id)
 	if err != nil {
-		return 0, errors.Wrap(err, "R.Create")
+		return 0, fmt.Errorf("pg_transactions.Create: %w", err)
 	}
 
 	return id, nil
 }
 
 func (t *R) Change(ctx context.Context, transactionID int, status domain.TransactionStatus) error {
-	_, err := t.db.Exec(ctx, "update transactions set status = $1 where id = $2", status, transactionID)
+	r, err := t.db.Exec(ctx, "update transactions set status = $1 where id = $2", status, transactionID)
 	if err != nil {
-		return errors.Wrap(err, "R.Change")
+		return fmt.Errorf("pg_transactions.Change: %w", err)
+	}
+
+	if r.RowsAffected() == 0 {
+		return fmt.Errorf("pg_transactions.Change: %w", domain.NewErrTxNotFound(transactionID))
 	}
 
 	return nil
@@ -57,7 +65,7 @@ func (t *R) Total(ctx context.Context, userID int) (balance int, e error) {
 		userID, domain.TransactionStatusComplete, domain.TransactionStatusHold).
 		Scan(&total)
 	if err != nil {
-		return 0, errors.Wrap(err, "R.Total")
+		return 0, fmt.Errorf("pg_transactions.Total: %w", err)
 	}
 
 	return int(total.Int64), nil

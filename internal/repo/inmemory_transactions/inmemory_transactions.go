@@ -2,9 +2,10 @@ package inmemory_transactions
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"math/rand"
-	"user-balance-service/internal/domain"
+	"slices"
+	"time"
+	"user-wallet-service/internal/domain"
 )
 
 type R struct {
@@ -21,19 +22,23 @@ func (r *R) Get(ctx context.Context, transactionID int) (*domain.Transaction, er
 	for _, u := range r.state {
 		for i := range u {
 			if u[i].ID == transactionID {
-				return &domain.Transaction{
+				t := &domain.Transaction{
 					ID:        u[i].ID,
 					UserID:    u[i].UserID,
 					ServiceID: u[i].ServiceID,
 					OrderID:   u[i].OrderID,
 					Status:    u[i].Status,
 					Amount:    u[i].Amount,
-				}, nil
+				}
+
+				// rest a little bit in order to create race conditions
+				time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+				return t, nil
 			}
 		}
 	}
 
-	return nil, errors.New("transaction not found")
+	return nil, domain.NewErrTxNotFound(transactionID)
 }
 
 func (r *R) Create(ctx context.Context, userID int, amount int, status domain.TransactionStatus) (transactionID int, e error) {
@@ -72,7 +77,15 @@ func (r *R) Total(ctx context.Context, userID int) (int, error) {
 	return total, nil
 }
 
-func (*R) Change(ctx context.Context, transactionID int, status domain.TransactionStatus) error {
-	//TODO implement me
-	panic("implement me")
+func (r *R) Change(ctx context.Context, transactionID int, status domain.TransactionStatus) error {
+	for _, u := range r.state {
+		for i := range u {
+			if u[i].ID == transactionID && slices.Contains(domain.TransactionStateMachine[u[i].Status], status) {
+				u[i].Status = status
+				return nil
+			}
+		}
+	}
+
+	return domain.NewErrTxNotFound(transactionID)
 }

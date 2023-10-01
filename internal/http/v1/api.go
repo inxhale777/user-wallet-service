@@ -2,9 +2,9 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"user-balance-service/internal/domain"
-	"user-balance-service/internal/http/v1/handlers"
-	"user-balance-service/internal/postgres"
+	"user-wallet-service/internal/domain"
+	"user-wallet-service/internal/http/v1/handlers"
+	"user-wallet-service/internal/postgres"
 )
 
 type SetupRequest struct {

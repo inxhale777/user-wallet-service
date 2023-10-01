@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"user-balance-service/config"
-	v1 "user-balance-service/internal/http/v1"
-	"user-balance-service/internal/postgres"
-	"user-balance-service/internal/repo/pg_transactions"
-	"user-balance-service/internal/service/wallet"
+	"user-wallet-service/config"
+	v1 "user-wallet-service/internal/http/v1"
+	"user-wallet-service/internal/postgres"
+	"user-wallet-service/internal/repo/pg_transactions"
+	"user-wallet-service/internal/service/wallet"
 )
 
 func main() {
@@ -27,12 +27,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("postgres initialization failed: %s", err)
 	}
+	defer p.Close()
 
 	err = p.Pool.Ping(ctx)
 	if err != nil {
 		log.Fatalf("can't ping postgres : %s", err)
 	}
-	defer p.Close()
 
 	// wallet service that is not wrapped around database TX
 	// used in handlers that logic does not require TX, e.g: GET /balance request

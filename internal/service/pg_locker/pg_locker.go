@@ -2,7 +2,8 @@ package pg_locker
 
 import (
 	"context"
-	"user-balance-service/internal/postgres"
+	"fmt"
+	"user-wallet-service/internal/postgres"
 )
 
 type Tx interface {
@@ -23,7 +24,7 @@ func New(tx Tx) *Locker {
 func (l *Locker) Lock(ctx context.Context, userID int) error {
 	_, err := l.tx.Exec(ctx, "select pg_advisory_xact_lock($1);", userID)
 	if err != nil {
-		return err
+		return fmt.Errorf("pg_locker.Lock: %w", err)
 	}
 
 	return nil

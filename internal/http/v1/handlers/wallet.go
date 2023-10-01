@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
-	"user-balance-service/internal/domain"
-	"user-balance-service/internal/postgres"
-	"user-balance-service/internal/repo/pg_transactions"
-	"user-balance-service/internal/service/pg_locker"
-	"user-balance-service/internal/service/wallet"
+	"user-wallet-service/internal/domain"
+	"user-wallet-service/internal/postgres"
+	"user-wallet-service/internal/repo/pg_transactions"
+	"user-wallet-service/internal/service/pg_locker"
+	"user-wallet-service/internal/service/wallet"
 )
 
 type hh struct {
@@ -75,7 +74,7 @@ func (h *hh) Deposit(c *gin.Context) {
 	}
 
 	if data.Amount < 1 {
-		errorResponse(c, http.StatusBadRequest, errors.New("amount must be greater or equal 1"))
+		errorResponse(c, http.StatusBadRequest, domain.ErrInvalidAmount)
 		return
 	}
 
