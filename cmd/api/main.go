@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 	"user-balance-service/config"
-	"user-balance-service/internal/api"
+	v1 "user-balance-service/internal/http/v1"
 	"user-balance-service/internal/postgres"
 	"user-balance-service/internal/repo/pg_transactions"
 	"user-balance-service/internal/service/wallet"
@@ -38,8 +38,7 @@ func main() {
 	// used in handlers that logic does not require TX, e.g: GET /balance request
 	w := wallet.New(pg_transactions.New(p.Pool), nil)
 
-	r := api.Run(&api.SetupRequest{
-		CFG:    cfg,
+	r := v1.Run(&v1.SetupRequest{
 		DB:     p,
 		Wallet: w,
 	})
