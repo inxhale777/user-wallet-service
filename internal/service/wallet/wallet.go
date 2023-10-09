@@ -3,6 +3,7 @@ package wallet
 import (
 	"context"
 	"fmt"
+	"time"
 	"user-wallet-service/internal/domain"
 )
 
@@ -18,7 +19,7 @@ func New(txRepo domain.TransactionRepo, locker domain.UserLocker) *W {
 func (w *W) Balance(ctx context.Context, userID int) (int, error) {
 	b, err := w.txRepo.Total(ctx, userID)
 	if err != nil {
-		return 0, fmt.Errorf("wallet.Balance: %w", domain.ErrInvalidAmount)
+		return 0, fmt.Errorf("wallet.Balance: %w", err)
 	}
 
 	return b, nil
@@ -40,7 +41,12 @@ func (w *W) Deposit(ctx context.Context, userID int, amount int) error {
 		_ = w.locker.Unlock(ctx, userID)
 	}()
 
-	_, err = w.txRepo.Create(ctx, userID, amount, domain.TransactionStatusComplete)
+	_, err = w.txRepo.Create(ctx, domain.Transaction{
+		UserID:      userID,
+		Amount:      amount,
+		Status:      domain.TransactionStatusComplete,
+		Description: fmt.Sprintf("deposit %d$ on %s", amount/100, time.Now().Format(time.RFC3339)),
+	})
 	if err != nil {
 		return fmt.Errorf("%s: %w", trace, err)
 	}
@@ -79,7 +85,12 @@ func (w *W) Hold(ctx context.Context, userID int, amount int) (int, error) {
 
 	// create transaction with NEGATIVE value because we are CHARGING money from user
 	amount *= -1
-	tx, err := w.txRepo.Create(ctx, userID, amount, domain.TransactionStatusHold)
+	tx, err := w.txRepo.Create(ctx, domain.Transaction{
+		UserID:      userID,
+		Amount:      amount,
+		Status:      domain.TransactionStatusHold,
+		Description: fmt.Sprintf("charge %d$ on %s", amount/100, time.Now().Format(time.RFC3339)),
+	})
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", trace, err)
 	}

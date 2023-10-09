@@ -1,0 +1,26 @@
+version: '3.9'
+services:
+  postgres:
+    container_name: postgres
+    image: postgres
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'user-wallet-service'
+    ports:
+      - "5432:5432"
+  app:
+    build: .
+    container_name: app
+    image: app
+    environment:
+      PG_URL: 'postgres://postgres:postgres@postgres:5432/user-wallet-service'
+      ADDR: ':8080'
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+volumes:
+  pg-data:

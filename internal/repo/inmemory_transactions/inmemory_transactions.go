@@ -23,12 +23,11 @@ func (r *R) Get(ctx context.Context, transactionID int) (*domain.Transaction, er
 		for i := range u {
 			if u[i].ID == transactionID {
 				t := &domain.Transaction{
-					ID:        u[i].ID,
-					UserID:    u[i].UserID,
-					ServiceID: u[i].ServiceID,
-					OrderID:   u[i].OrderID,
-					Status:    u[i].Status,
-					Amount:    u[i].Amount,
+					ID:          u[i].ID,
+					UserID:      u[i].UserID,
+					Status:      u[i].Status,
+					Amount:      u[i].Amount,
+					Description: u[i].Description,
 				}
 
 				// rest a little bit in order to create race conditions
@@ -41,26 +40,27 @@ func (r *R) Get(ctx context.Context, transactionID int) (*domain.Transaction, er
 	return nil, domain.NewErrTxNotFound(transactionID)
 }
 
-func (r *R) Create(ctx context.Context, userID int, amount int, status domain.TransactionStatus) (transactionID int, e error) {
+func (r *R) Create(ctx context.Context, tx domain.Transaction) (transactionID int, e error) {
 	id := rand.Intn(9999)
-	_, ok := r.state[userID]
+	_, ok := r.state[tx.UserID]
 	if !ok {
-		r.state[userID] = make([]domain.Transaction, 1)
-		r.state[userID][0] = domain.Transaction{
-			ID:     id,
-			UserID: userID,
-			Status: status,
-			Amount: amount,
+		r.state[tx.UserID] = make([]domain.Transaction, 1)
+		r.state[tx.UserID][0] = domain.Transaction{
+			ID:          id,
+			UserID:      tx.UserID,
+			Status:      tx.Status,
+			Amount:      tx.Amount,
+			Description: tx.Description,
 		}
 
 		return id, nil
 	}
 
-	r.state[userID] = append(r.state[userID], domain.Transaction{
+	r.state[tx.UserID] = append(r.state[tx.UserID], domain.Transaction{
 		ID:     id,
-		UserID: userID,
-		Status: status,
-		Amount: amount,
+		UserID: tx.UserID,
+		Status: tx.Status,
+		Amount: tx.Amount,
 	})
 
 	return id, nil
