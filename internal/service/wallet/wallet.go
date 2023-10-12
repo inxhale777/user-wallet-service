@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 	"user-wallet-service/internal/domain"
@@ -26,7 +27,6 @@ func (w *W) Balance(ctx context.Context, userID int) (int, error) {
 }
 
 func (w *W) Deposit(ctx context.Context, userID int, amount int) error {
-
 	trace := "wallet.Deposit"
 
 	if w.locker == nil {
@@ -55,7 +55,6 @@ func (w *W) Deposit(ctx context.Context, userID int, amount int) error {
 }
 
 func (w *W) Hold(ctx context.Context, userID int, amount int) (int, error) {
-
 	trace := "wallet.Hold"
 
 	if w.locker == nil {
@@ -114,8 +113,7 @@ func (w *W) Charge(ctx context.Context, transactionID int) error {
 	// do we need locker here?
 	err = w.txRepo.Change(ctx, transactionID, want)
 	if err != nil {
-		switch err.(type) {
-		case *domain.ErrTxNotFound:
+		if errors.Is(err, (*domain.ErrTxNotFound)(nil)) {
 			// Someone has changed TX faster than us.
 			// That's why we got ErrTxNotFound despite of fact that we have found it before
 			// So grab TX again with newer status and return ErrInvalidTxStatus
@@ -125,9 +123,9 @@ func (w *W) Charge(ctx context.Context, transactionID int) error {
 			}
 
 			return fmt.Errorf("%s: %w", trace, domain.NewErrInvalidTxStatus(transactionID, want, tx.Status))
-		default:
-			return fmt.Errorf("%s: %w", trace, err)
 		}
+
+		return fmt.Errorf("%s: %w", trace, err)
 	}
 
 	return nil

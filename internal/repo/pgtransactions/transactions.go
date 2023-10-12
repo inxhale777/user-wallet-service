@@ -1,11 +1,12 @@
-package pg_transactions
+package pgtransactions
 
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgtype"
 	"user-wallet-service/internal/domain"
 	"user-wallet-service/internal/postgres"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type R struct {
@@ -17,7 +18,6 @@ func New(db postgres.DB) *R {
 }
 
 func (t *R) Get(ctx context.Context, transactionID int) (*domain.Transaction, error) {
-
 	var tx domain.Transaction
 	err := t.db.
 		QueryRow(ctx, "select id, user_id, status, amount, description from transactions where id = $1", transactionID).
@@ -45,9 +45,9 @@ func (t *R) Create(ctx context.Context, tx domain.Transaction) (int, error) {
 
 	return id, nil
 }
-
 func (t *R) Change(ctx context.Context, transactionID int, status domain.TransactionStatus) error {
-	r, err := t.db.Exec(ctx, "update transactions set status = $1 where id = $2", status, transactionID)
+	sql := "update transactions set status = $1 where id = $2 and status = $3"
+	r, err := t.db.Exec(ctx, sql, status, transactionID, domain.TransactionStateMachine[status])
 	if err != nil {
 		return fmt.Errorf("pg_transactions.Change: %w", err)
 	}
@@ -59,7 +59,7 @@ func (t *R) Change(ctx context.Context, transactionID int, status domain.Transac
 	return nil
 }
 
-func (t *R) Total(ctx context.Context, userID int) (balance int, e error) {
+func (t *R) Total(ctx context.Context, userID int) (int, error) {
 	var total pgtype.Int8
 	err := t.db.QueryRow(ctx,
 		"select sum(amount) from transactions where user_id = $1 and status in ($2, $3)",

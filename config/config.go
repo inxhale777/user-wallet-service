@@ -1,19 +1,22 @@
 package config
 
-import "fmt"
-import "github.com/ilyakaznacheev/cleanenv"
+import (
+	"fmt"
 
-type Config struct {
-	Addr  string `yaml:"addr" env:"ADDR"`
-	PgURL string `yaml:"pg_url" env:"PG_URL"`
+	"github.com/ilyakaznacheev/cleanenv"
+)
+
+type C struct {
+	Endpoint string `yaml:"endpoint" env:"ENDPOINT"`
+	PgDSN    string `yaml:"pg_dsn" env:"PG_DSN"`
 }
 
-func NewConfig() (*Config, error) {
-	cfg := &Config{}
+func New() (*C, error) {
+	cfg := &C{}
 
 	err := cleanenv.ReadConfig("./config/config.yml", cfg)
 	if err != nil {
-		return nil, fmt.Errorf("config error: %w", err)
+		return nil, fmt.Errorf("config.New: %w", err)
 	}
 
 	err = cleanenv.ReadEnv(cfg)

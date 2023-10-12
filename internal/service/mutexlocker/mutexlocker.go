@@ -1,4 +1,4 @@
-package mutex_locker
+package mutexlocker
 
 import (
 	"context"
@@ -35,13 +35,13 @@ func (l *L) getLock(userID int) sync.Locker {
 	return m
 }
 
-func (l *L) Lock(ctx context.Context, userID int) error {
+func (l *L) Lock(_ context.Context, userID int) error {
 	l.getLock(userID).Lock()
 
 	return nil
 }
 
-func (l *L) Unlock(ctx context.Context, userID int) error {
+func (l *L) Unlock(_ context.Context, userID int) error {
 	l.getLock(userID).Unlock()
 
 	return nil

@@ -1,4 +1,4 @@
-package pg_locker
+package pglocker
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func (l *Locker) Lock(ctx context.Context, userID int) error {
 	return nil
 }
 
-func (l *Locker) Unlock(ctx context.Context, userID int) error {
+func (l *Locker) Unlock(context.Context, int) error {
 	// we use pg_advisory_xact_lock here
 	// so it will automatically unlocked
 	// after commit or rollback of postgresql transaction

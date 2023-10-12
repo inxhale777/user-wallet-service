@@ -10,7 +10,7 @@ import (
 	"user-wallet-service/config"
 	v1 "user-wallet-service/internal/http/v1"
 	"user-wallet-service/internal/postgres"
-	"user-wallet-service/internal/repo/pg_transactions"
+	"user-wallet-service/internal/repo/pgtransactions"
 	"user-wallet-service/internal/service/wallet"
 )
 
@@ -18,12 +18,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	cfg, err := config.NewConfig()
+	cfg, err := config.New()
 	if err != nil {
-		log.Fatalf("Unable to create config: %s", err)
+		log.Fatalf("Unable to create config: %s", err) //nolint:gocritic
 	}
 
-	p, err := postgres.New(ctx, cfg.PgURL)
+	p, err := postgres.New(ctx, cfg.PgDSN)
 	if err != nil {
 		log.Fatalf("postgres initialization failed: %s", err)
 	}
@@ -36,7 +36,7 @@ func main() {
 
 	// wallet service that is not wrapped around database TX
 	// used in handlers that logic does not require TX, e.g: GET /balance request
-	w := wallet.New(pg_transactions.New(p.Pool), nil)
+	w := wallet.New(pgtransactions.New(p.Pool), nil)
 
 	r := v1.Run(&v1.SetupRequest{
 		DB:     p,
@@ -44,8 +44,9 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:    cfg.Addr,
-		Handler: r,
+		Addr:              cfg.Endpoint,
+		Handler:           r,
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 
 	// Initializing the server in a goroutine so that

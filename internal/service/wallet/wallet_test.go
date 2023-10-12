@@ -2,20 +2,20 @@ package wallet_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"user-wallet-service/internal/domain"
-	"user-wallet-service/internal/repo/inmemory_transactions"
-	"user-wallet-service/internal/service/mutex_locker"
+	"user-wallet-service/internal/repo/inmemorytransactions"
+	"user-wallet-service/internal/service/mutexlocker"
 	"user-wallet-service/internal/service/wallet"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestWallet_Deposit(t *testing.T) {
-
 	t.Run("without locker", func(t *testing.T) {
-		w := wallet.New(inmemory_transactions.New(), nil)
+		w := wallet.New(inmemorytransactions.New(), nil)
 		err := w.Deposit(context.Background(), 0, 0)
 		require.ErrorIs(t, err, domain.ErrNoLockerProvided)
 	})
@@ -26,7 +26,7 @@ func TestWallet_Deposit(t *testing.T) {
 		userID := 9999
 		amount := 500 * 100
 
-		w := wallet.New(inmemory_transactions.New(), mutex_locker.New())
+		w := wallet.New(inmemorytransactions.New(), mutexlocker.New())
 
 		// actually we can't get any anomalies doing .Deposit concurrently
 		// but let it be for fun
@@ -50,9 +50,8 @@ func TestWallet_Deposit(t *testing.T) {
 }
 
 func TestWallet_Hold(t *testing.T) {
-
 	t.Run("without locker", func(t *testing.T) {
-		w := wallet.New(inmemory_transactions.New(), nil)
+		w := wallet.New(inmemorytransactions.New(), nil)
 		_, err := w.Hold(context.Background(), 0, 0)
 		require.ErrorIs(t, err, domain.ErrNoLockerProvided)
 	})
@@ -69,7 +68,7 @@ func TestWallet_Hold(t *testing.T) {
 		failed := int32(200)
 		runs := int(success + failed)
 
-		w := wallet.New(inmemory_transactions.New(), mutex_locker.New())
+		w := wallet.New(inmemorytransactions.New(), mutexlocker.New())
 		err := w.Deposit(ctx, userID, balance)
 		require.Nil(t, err)
 
@@ -82,7 +81,6 @@ func TestWallet_Hold(t *testing.T) {
 				defer wg.Done()
 				_, err := w.Hold(ctx, userID, hold)
 				if err != nil {
-
 					var insufficientMoneyErr *domain.ErrInsufficientMoney
 					require.ErrorAs(t, err, &insufficientMoneyErr)
 					require.Equal(t, insufficientMoneyErr.UserID, userID)
@@ -108,9 +106,7 @@ func TestWallet_Hold(t *testing.T) {
 }
 
 func TestWallet_Charge(t *testing.T) {
-
 	t.Run("concurrently", func(t *testing.T) {
-
 		ctx := context.Background()
 		userID := 9999
 		// 1000 $
@@ -120,7 +116,7 @@ func TestWallet_Charge(t *testing.T) {
 		failed := int32(99)
 		runs := int(success + failed)
 
-		w := wallet.New(inmemory_transactions.New(), mutex_locker.New())
+		w := wallet.New(inmemorytransactions.New(), mutexlocker.New())
 		err := w.Deposit(ctx, userID, balance)
 		require.Nil(t, err)
 
@@ -137,7 +133,6 @@ func TestWallet_Charge(t *testing.T) {
 
 				err := w.Charge(ctx, tx)
 				if err != nil {
-
 					var txStatusErr *domain.ErrInvalidTxStatus
 					require.ErrorAs(t, err, &txStatusErr)
 					require.Equal(t, txStatusErr.TransactionID, tx)

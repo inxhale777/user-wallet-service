@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"user-wallet-service/internal/domain"
 	"user-wallet-service/internal/postgres"
-	"user-wallet-service/internal/repo/pg_transactions"
-	"user-wallet-service/internal/service/pg_locker"
+	"user-wallet-service/internal/repo/pgtransactions"
+	"user-wallet-service/internal/service/pglocker"
 	"user-wallet-service/internal/service/wallet"
+
+	"github.com/gin-gonic/gin"
 )
 
 type hh struct {
@@ -57,7 +58,6 @@ func (h *hh) Balance(ctx *gin.Context) {
 }
 
 func (h *hh) Deposit(ctx *gin.Context) {
-
 	type deposit struct {
 		Amount int `json:"amount"`
 	}
@@ -88,7 +88,7 @@ func (h *hh) Deposit(ctx *gin.Context) {
 	}
 
 	// create service, repo and locker wrapped on database TX
-	walletServiceTx := wallet.New(pg_transactions.New(tx), pg_locker.New(tx))
+	walletServiceTx := wallet.New(pgtransactions.New(tx), pglocker.New(tx))
 
 	err = walletServiceTx.Deposit(ctx, userID, data.Amount)
 	if err != nil {
@@ -109,7 +109,6 @@ func (h *hh) Deposit(ctx *gin.Context) {
 }
 
 func (h *hh) Hold(ctx *gin.Context) {
-
 	type hold struct {
 		Amount int `json:"amount"`
 	}
@@ -140,7 +139,7 @@ func (h *hh) Hold(ctx *gin.Context) {
 	}
 
 	// create service, repo and locker wrapped on database TX
-	walletServiceTx := wallet.New(pg_transactions.New(tx), pg_locker.New(tx))
+	walletServiceTx := wallet.New(pgtransactions.New(tx), pglocker.New(tx))
 	txID, err := walletServiceTx.Hold(ctx, userID, data.Amount)
 	if err != nil {
 		_ = tx.Rollback(ctx)

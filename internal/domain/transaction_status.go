@@ -8,11 +8,12 @@ var (
 	TransactionStatusCancelled TransactionStatus = "cancelled"
 )
 
-var TransactionStateMachine = map[TransactionStatus][]TransactionStatus{
-	// from hold to complete or cancelled
-	TransactionStatusHold: {TransactionStatusComplete, TransactionStatusCancelled},
-	// from cancelled to nothing
-	TransactionStatusComplete: {},
-	// from complete to nothing
-	TransactionStatusCancelled: {},
+// TransactionStateMachine "wanted status": "need to have status".
+var TransactionStateMachine = map[TransactionStatus]TransactionStatus{
+	// unable to change status to HOLD
+	TransactionStatusHold: "",
+	// able to change status to COMPLETE only from HOLD
+	TransactionStatusComplete: TransactionStatusHold,
+	// able to change status to CANCELLED only from HOLD
+	TransactionStatusCancelled: TransactionStatusHold,
 }
