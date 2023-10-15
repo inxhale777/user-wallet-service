@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"path"
+	"runtime"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -13,8 +15,8 @@ type C struct {
 
 func New() (*C, error) {
 	cfg := &C{}
-
-	err := cleanenv.ReadConfig("./config/config.yml", cfg)
+	_, filename, _, _ := runtime.Caller(0)
+	err := cleanenv.ReadConfig(path.Join(path.Dir(filename), "/config.yml"), cfg)
 	if err != nil {
 		return nil, fmt.Errorf("config.New: %w", err)
 	}

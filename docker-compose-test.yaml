@@ -1,0 +1,20 @@
+version: '3.9'
+services:
+  postgres-test:
+    container_name: postgres-test
+    image: postgres:16
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'user-wallet-service-test'
+  integration:
+    build:
+      context: .
+      dockerfile: integration-test/Dockerfile
+    container_name: integration
+    image: integration
+    environment:
+      PG_DSN: 'postgres://postgres:postgres@postgres-test:5432/user-wallet-service-test?sslmode=disable'
+      ENDPOINT: ':8080'
+    depends_on:
+      - postgres-test
